@@ -20,7 +20,7 @@ df = load_data(file_path)
 # Centraliza o título utilizando HTML
 st.write("<h1 style='text-align: center;'>Dashboard do CAGED-PE</h1>", unsafe_allow_html=True)
 st.write("""
-Este dashboard tem como objetivo apresentar uma análise dos dados do CAGED-PE. Os dados incluem informações sobre empregos formais em Pernambuco.
+Este dashboard tem como objetivo apresentar uma análise interativa dos dados do CAGED-PE. Os dados incluem informações sobre empregos formais em Pernambuco.
 """)
 
 # Criando uma cópia do dataframe com apenas as colunas desejadas
@@ -71,6 +71,58 @@ fig.update_layout(
 
 # Exibindo o gráfico
 st.plotly_chart(fig)
+
+
+# Criando uma cópia do dataframe com apenas as colunas desejadas
+df_instrucao = df[['graudeinstrução', 'saldomovimentação']]
+
+# Agrupando por grau de instrução e contando o número de admissões e desligamentos
+df_instrucao = df_instrucao.groupby('graudeinstrução')['saldomovimentação'].value_counts().unstack()
+
+# Calculando o total de movimentações (admissões + desligamentos) para cada grau de instrução
+df_instrucao['total'] = df_instrucao.sum(axis=1)
+
+# Ordenando os graus de instrução pelo total de movimentações
+df_instrucao = df_instrucao.sort_values('total', ascending=False)
+
+# Selecionando apenas graus de instrução
+df_instrucao = df_instrucao.head(15)
+
+
+# Criando a figura do gráfico
+fig = go.Figure()
+
+# Adicionando as barras empilhadas de admissões e desligamentos
+fig.add_trace(go.Bar(
+    y=df_instrucao.index,
+    x=df_instrucao['Admissão'],
+    orientation='h',
+    name='Admissões',
+    marker=dict(color='#1f77b4')
+))
+
+fig.add_trace(go.Bar(
+    y=df_instrucao.index,
+    x=-df_instrucao['Desligamento'],
+    orientation='h',
+    name='Desligamentos',
+    marker=dict(color='#ff7f0e')
+))
+
+# Personalizando o layout do gráfico
+fig.update_layout(
+    title='Admissões e Desligamentos entre 2020-2022 - com Base na Escolaridade',
+    xaxis_title='Número de trabalhadores',
+    yaxis_title='Escolaridade',
+    barmode='overlay',
+    bargap=0.1,
+    bargroupgap=0.1,
+    template='plotly_white'
+)
+
+# Exibindo o gráfico
+st.plotly_chart(fig)
+
 
 
 # Selecionar apenas as colunas relevantes para o dashboard
