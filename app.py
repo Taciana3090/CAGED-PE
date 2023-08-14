@@ -127,25 +127,47 @@ grouped_bar_chart_movimentacao = px.bar(
 # formatação para moeda brasileira
 locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
-# seção de atividade econômica e calcular a média salarial
-media_salarial_por_secao = filtered_data.groupby('Seção de Atividade Econômica')['Salário'].mean().reset_index()
+# seção de atividade econômica, raça/cor e calcular a média salarial
+media_salarial_por_secao_raca = filtered_data.groupby(['Seção de Atividade Econômica', 'Raça/Cor'])['Salário'].mean().reset_index()
 
-# gráfico de barras para a média salarial por seção de atividade econômica
-bar_chart_media_salarial = px.bar(
-    media_salarial_por_secao,
-    x='Seção de Atividade Econômica',
+# gráfico de barras facetado para a média salarial por setor de atividade econômica e raça/cor
+bar_chart_media_salarial_raca = px.bar(
+    media_salarial_por_secao_raca,
+    x='Raça/Cor',
     y='Salário',
-    title=f'Média Salarial por {selected_genero} em {selected_cidade} ({selected_ano})',
-    labels={'Seção de Atividade Econômica': 'Setor da Economia', 'Salário': 'Média Salarial (R$)'}
+    color='Raça/Cor',
+    facet_col='Seção de Atividade Econômica',  # Facetado por setor de atividade econômica
+    facet_col_wrap=1,  # Uma coluna de subgráficos
+    title=f'Média Salarial por {selected_genero} e Raça/Cor em {selected_cidade} ({selected_ano})',
+    labels={'Raça/Cor': 'Raça/Cor', 'Salário': 'Média Salarial (R$)'}
 )
 
 # em reais no formato correto
-bar_chart_media_salarial.update_layout(yaxis_tickprefix='R$', yaxis_tickformat=',.2f')
+bar_chart_media_salarial_raca.update_layout(yaxis_tickprefix='R$', yaxis_tickformat=',.2f')
 
+
+# seção de atividade econômica, nível de instrução e calcular a média salarial
+media_salarial_por_secao_instrucao = filtered_data.groupby(['Seção de Atividade Econômica', 'Nível Instrução'])['Salário'].mean().reset_index()
+
+# gráfico de barras facetado para a média salarial por setor de atividade econômica e nível de instrução
+bar_chart_media_salarial_instrucao = px.bar(
+    media_salarial_por_secao_instrucao,
+    x='Nível Instrução',
+    y='Salário',
+    color='Nível Instrução',
+    facet_col='Seção de Atividade Econômica',  # Facetado por setor de atividade econômica
+    facet_col_wrap=1,  # Uma coluna de subgráficos
+    title=f'Média Salarial por {selected_genero} e Nível de Instrução em {selected_cidade} ({selected_ano})',
+    labels={'Nível Instrução': 'Nível de Instrução', 'Salário': 'Média Salarial (R$)'}
+)
+
+# em reais no formato correto
+bar_chart_media_salarial_instrucao.update_layout(yaxis_tickprefix='R$', yaxis_tickformat=',.2f')
 
 # gráficos na página principal
 st.write("<h2 style='text-align: center;'>Gráficos</h2>", unsafe_allow_html=True)
 st.plotly_chart(fig, use_container_width=True)  
 st.plotly_chart(stacked_bar_chart, use_container_width=True)  
 st.plotly_chart(grouped_bar_chart_movimentacao, use_container_width=True)
-st.plotly_chart(bar_chart_media_salarial, use_container_width=True)
+st.plotly_chart(bar_chart_media_salarial_raca, use_container_width=True)
+st.plotly_chart(bar_chart_media_salarial_instrucao, use_container_width=True)
