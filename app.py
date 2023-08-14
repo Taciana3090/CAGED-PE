@@ -4,7 +4,6 @@ import altair as alt
 import plotly.express as px
 import seaborn as sns
 import matplotlib.pyplot as plt
-import locale
 
 # localização para português
 st.set_page_config(
@@ -124,9 +123,6 @@ grouped_bar_chart_movimentacao = px.bar(
     labels={'Seção de Atividade Econômica': 'Seção de Atividade Econômica', 'Quantidade': 'Quantidade', 'saldomovimentação': 'Movimentação'}
 )
 
-# formatação para moeda brasileira
-locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
-
 # seção de atividade econômica, raça/cor e calcular a média salarial
 media_salarial_por_secao_raca = filtered_data.groupby(['Seção de Atividade Econômica', 'Raça/Cor'])['Salário'].mean().reset_index()
 
@@ -143,7 +139,7 @@ bar_chart_media_salarial_raca = px.bar(
 )
 
 # em reais no formato correto
-bar_chart_media_salarial_raca.update_layout(yaxis_tickprefix='R$', yaxis_tickformat=',.2f')
+bar_chart_media_salarial_raca.update_layout(yaxis_tickformat=',.2f')
 
 
 # seção de atividade econômica, nível de instrução e calcular a média salarial
@@ -162,7 +158,7 @@ bar_chart_media_salarial_instrucao = px.bar(
 )
 
 # em reais no formato correto
-bar_chart_media_salarial_instrucao.update_layout(yaxis_tickprefix='R$', yaxis_tickformat=',.2f')
+bar_chart_media_salarial_instrucao.update_layout(yaxis_tickformat=',.2f')
 
 # gráficos na página principal
 st.write("<h2 style='text-align: center;'>Gráficos</h2>", unsafe_allow_html=True)
