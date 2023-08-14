@@ -1,192 +1,151 @@
-# importando as bibliotecas necessárias
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
 import streamlit as st
 import altair as alt
 import plotly.express as px
-import plotly.graph_objects as go
+import seaborn as sns
+import matplotlib.pyplot as plt
+import locale
 
+# localização para português
+st.set_page_config(
+    page_title="Dashboard CAGED Pernambuco",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
-
-@st.cache_resource
+# base de dados
+file_path = 'https://github.com/Taciana3090/CAGED-PE/raw/master/Data/CAGED-PE_LIMPO.csv'
+@st.cache_data  # cache para evitar o carregamento repetido dos dados
 def load_data(file_path):
     data = pd.read_csv(file_path)
     return data
 
-file_path = 'https://github.com/Taciana3090/CAGED-PE/raw/master/Data/CAGED-PE_LIMPO.csv'
 df = load_data(file_path)
 
-# Centraliza o título utilizando HTML
-st.write("<h1 style='text-align: center;'>Dashboard do CAGED-PE</h1>", unsafe_allow_html=True)
+# renomeando as colunas
+df.rename(columns={
+    'uf': 'Estado',
+    'município': 'Cidade',
+    'idade': 'Idade',
+    'raçacor': 'Raça/Cor',
+    'cbo2002ocupação': 'Código Ocupação',
+    'categoria': 'Categoria',
+    'graudeinstrução': 'Nível Instrução',
+    'sexo': 'Gênero',
+    'tipoempregador': 'Tipo Empregador',
+    'tipoestabelecimento': 'Tipo Estabelecimento',
+    'tipomovimentação': 'Tipo Movimentação',
+    'tipodedeficiência': 'Tipo Deficiência',
+    'indtrabintermitente': 'Trabalho Intermitente',
+    'indtrabparcial': 'Trabalho Parcial',
+    'salário': 'Salário',
+    'seção': 'Seção de Atividade Econômica',
+    'valorsaláriofixo': 'Valor Salário Fixo',
+    'ano_declaração': 'Ano Declaração',
+    'mês_declaração': 'Mês Declaração',
+    'ano_exclusão': 'Ano Exclusão',
+    'mês_exclusão': 'Mês Exclusão',
+}, inplace=True)
+
+# centralizando o título com HTML
+st.write("<h1 style='text-align: center;'>Dashboard Interativo - Dados do CAGED-PE</h1>", unsafe_allow_html=True)
 st.write("""
-Este dashboard tem como objetivo apresentar uma análise interativa dos dados do CAGED-PE. Os dados incluem informações sobre empregos formais em Pernambuco.
+
+Bem-vindo ao nosso dashboard interativo! Aqui, você pode explorar análises detalhadas dos dados de empregos formais em Pernambuco.
+
+**Objetivo:** Este dashboard tem como objetivo oferecer insights valiosos a partir dos dados do CAGED-PE, permitindo uma análise personalizada dos empregos formais na região.
+
+**Exploração Interativa:** Use os filtros à esquerda para personalizar a visualização dos gráficos abaixo. Selecione o ano, a cidade, o gênero e a seção de atividade econômica para analisar diferentes aspectos dos dados.
+
+**Gráficos:** Abaixo, você encontrará gráficos interativos que ilustram as tendências e os padrões dos empregos formais em Pernambuco.
 """)
 
-# Criando uma cópia do dataframe com apenas as colunas desejadas
-df_adm_desl = df[['município', 'saldomovimentação']]
+# lista de anos únicos
+anos_disponiveis = df['Ano Declaração'].unique()
 
-# Agrupando por município e contando o número de admissões e desligamentos
-df_adm_desl = df_adm_desl.groupby('município')['saldomovimentação'].value_counts().unstack()
+with st.sidebar:
+    st.header("Filtros")
+    st.markdown("Personalize a visualização dos gráficos:")
+    selected_ano = st.radio('Ano:', anos_disponiveis)
+    selected_cidade = st.selectbox('Cidade:', df['Cidade'].unique())
+    selected_genero = st.selectbox('Gênero:', df['Gênero'].unique())
+    selected_secao = st.selectbox('Seção de Atividade Econômica:', df['Seção de Atividade Econômica'].unique())
 
-# Calculando o total de movimentações (admissões + desligamentos) para cada município
-df_adm_desl['total'] = df_adm_desl.sum(axis=1)
 
-# Ordenando os municípios pelo total de movimentações
-df_adm_desl = df_adm_desl.sort_values('total', ascending=False)
+# base nos filtros selecionados
+filtered_data = df[
+    (df['Cidade'] == selected_cidade) &
+    (df['Gênero'] == selected_genero) &
+    (df['Seção de Atividade Econômica'] == selected_secao) &
+    (df['Ano Declaração'] == selected_ano)
+]
 
-# Selecionando apenas os 10 primeiros municípios
-df_adm_desl = df_adm_desl.head(10)
-
-# Criando a figura do gráfico
-fig = go.Figure()
-
-# Adicionando as barras empilhadas de admissões e desligamentos
-fig.add_trace(go.Bar(
-    y=df_adm_desl.index,
-    x=df_adm_desl['Admissão'],
-    orientation='h',
-    name='Admissões',
-    marker=dict(color='#1f77b4')
-))
-
-fig.add_trace(go.Bar(
-    y=df_adm_desl.index,
-    x=-df_adm_desl['Desligamento'],
-    orientation='h',
-    name='Desligamentos',
-    marker=dict(color='#ff7f0e')
-))
-
-# Personalizando o layout do gráfico
-fig.update_layout(
-    title='10 Municípios com mais Admissões e Desligamentos entre 2020-2022',
-    xaxis_title='Número de trabalhadores',
-    yaxis_title='Município',
-    barmode='overlay',
-    bargap=0.1,
-    bargroupgap=0.1,
-    template='plotly_white'
+# histograma de Idades por Gênero
+fig = px.histogram(
+    filtered_data,
+    x='Idade',
+    color='Gênero',
+    facet_col='Seção de Atividade Econômica',  # Facetamento por seção de atividade econômica
+    title=f'Distribuição de Idades por {selected_genero} em {selected_cidade} ({selected_ano})',
+    labels={'Idade': 'Idade', 'count': 'Número de Pessoas'} 
 )
 
-# Exibindo o gráfico
-st.plotly_chart(fig)
+# seção de atividade econômica e tipo de movimentação (admissão/desligamento)
+movimentacao_data = filtered_data.groupby(['Seção de Atividade Econômica', 'saldomovimentação', 'Gênero']).size().reset_index(name='Quantidade')
 
+# gráfico de barras empilhadas para admissões e desligamentos
+stacked_bar_chart = px.bar(
+    movimentacao_data,
+    x='Seção de Atividade Econômica',
+    y='Quantidade',
+    color='saldomovimentação',
+    title=f'Admissões e Desligamentos por {selected_genero} em {selected_cidade} ({selected_ano})',
+    labels={'Seção de Atividade Econômica': 'Seção de Atividade Econômica', 'Quantidade': 'Quantidade', 'saldomovimentação': 'Movimentação'}
+)
+# ...
 
-# Criando uma cópia do dataframe com apenas as colunas desejadas
-df_instrucao = df[['graudeinstrução', 'saldomovimentação']]
+# seção de atividade econômica, nível de instrução e tipo de movimentação (admissão/desligamento)
+movimentacao_data = filtered_data.groupby(['Seção de Atividade Econômica', 'Nível Instrução', 'saldomovimentação']).size().reset_index(name='Quantidade')
 
-# Agrupando por grau de instrução e contando o número de admissões e desligamentos
-df_instrucao = df_instrucao.groupby('graudeinstrução')['saldomovimentação'].value_counts().unstack()
+# admissões e desligamentos
+admissoes = movimentacao_data[movimentacao_data['saldomovimentação'] == 'Admissão']
+desligamentos = movimentacao_data[movimentacao_data['saldomovimentação'] == 'Desligamento']
 
-# Calculando o total de movimentações (admissões + desligamentos) para cada grau de instrução
-df_instrucao['total'] = df_instrucao.sum(axis=1)
-
-# Ordenando os graus de instrução pelo total de movimentações
-df_instrucao = df_instrucao.sort_values('total', ascending=False)
-
-# Selecionando apenas graus de instrução
-df_instrucao = df_instrucao.head(15)
-
-
-# Criando a figura do gráfico
-fig = go.Figure()
-
-# Adicionando as barras empilhadas de admissões e desligamentos
-fig.add_trace(go.Bar(
-    y=df_instrucao.index,
-    x=df_instrucao['Admissão'],
-    orientation='h',
-    name='Admissões',
-    marker=dict(color='#1f77b4')
-))
-
-fig.add_trace(go.Bar(
-    y=df_instrucao.index,
-    x=-df_instrucao['Desligamento'],
-    orientation='h',
-    name='Desligamentos',
-    marker=dict(color='#ff7f0e')
-))
-
-# Personalizando o layout do gráfico
-fig.update_layout(
-    title='Admissões e Desligamentos entre 2020-2022 - com Base na Escolaridade',
-    xaxis_title='Número de trabalhadores',
-    yaxis_title='Escolaridade',
-    barmode='overlay',
-    bargap=0.1,
-    bargroupgap=0.1,
-    template='plotly_white'
+# gráfico de barras agrupadas para admissões e desligamentos por nível de instrução
+grouped_bar_chart_movimentacao = px.bar(
+    movimentacao_data,
+    x='Seção de Atividade Econômica',
+    y='Quantidade',
+    color='Nível Instrução',
+    barmode='group',  # modo de agrupamento de barras
+    facet_col='saldomovimentação',
+    title=f'Admissões e Desligamentos por {selected_genero} e Nível de Instrução em {selected_cidade} ({selected_ano})',
+    labels={'Seção de Atividade Econômica': 'Seção de Atividade Econômica', 'Quantidade': 'Quantidade', 'saldomovimentação': 'Movimentação'}
 )
 
-# Exibindo o gráfico
-st.plotly_chart(fig)
+# formatação para moeda brasileira
+locale.setlocale(locale.LC_ALL, 'pt_BR.UTF-8')
 
+# seção de atividade econômica e calcular a média salarial
+media_salarial_por_secao = filtered_data.groupby('Seção de Atividade Econômica')['Salário'].mean().reset_index()
 
-
-# Selecionar apenas as colunas relevantes para o dashboard
-cols = ["seção", "salário", "tipomovimentação", "sexo", "saldomovimentação", "idade", "graudeinstrução"
-        , "raçacor", "ano_declaração", "mês_declaração", "município"]
-df = df[cols]
-
-
-# Converter o tipo de dados da coluna "salário" para float e formatar a coluna
-df["salário"] = df["salário"].astype(str).replace(',', '').replace('.', '').astype(float)
-
-
-# Agrupar os dados por setor da economia e calcular as estatísticas relevantes
-grouped = df.groupby(["seção"]).agg({
-    "salário": ["mean", "median", "min", "max"],
-    "tipomovimentação": ["count"]
-})
-
-# Renomear as colunas para uma melhor legibilidade
-grouped.columns = ["_".join(col).strip() for col in grouped.columns.values]
-
-# Agrupar os dados por setor da economia e calcular a média salarial
-grouped = df.groupby(["seção"]).agg({
-    "salário": "mean"
-}).reset_index()
-
-# Criar o gráfico de barras com a média salarial por setor da economia
-chart = alt.Chart(grouped).mark_bar().encode(
-    x=alt.X('salário:Q', title='Média Salarial', axis=alt.Axis(format='$.2f')),
-    y=alt.Y('seção:N', title='Setor da Economia'),
-    color=alt.Color('seção:N', legend=None)
-).properties(
-    width=600,
-    height=400,
-    title='Média Salarial por Setor da Economia em Pernambuco'
+# gráfico de barras para a média salarial por seção de atividade econômica
+bar_chart_media_salarial = px.bar(
+    media_salarial_por_secao,
+    x='Seção de Atividade Econômica',
+    y='Salário',
+    title=f'Média Salarial por {selected_genero} em {selected_cidade} ({selected_ano})',
+    labels={'Seção de Atividade Econômica': 'Setor da Economia', 'Salário': 'Média Salarial (R$)'}
 )
 
-# Exibir o gráfico
-st.altair_chart(chart, use_container_width=True)
+# em reais no formato correto
+bar_chart_media_salarial.update_layout(yaxis_tickprefix='R$', yaxis_tickformat=',.2f')
 
-# Selecionar apenas as colunas relevantes para o dashboard
-cols = ["sexo", "salário", "saldomovimentação"]
-df = df[cols]
 
-# Converter o tipo de dados da coluna "salário" para float e formatar a coluna
-df["salário"] = df["salário"].astype(str).replace(',', '').replace('.', '').astype(float)
-
-# Agrupar os dados por sexo e calcular a média salarial
-grouped = df.groupby(["sexo"]).agg({
-    "salário": "mean"
-}).reset_index()
-
-# Criar o gráfico de barras com a média salarial por sexo
-color_scale = alt.Scale(domain=["Mulher", "Homem"], range=["#FF69B4", "#1E90FF"])
-chart = alt.Chart(grouped).mark_bar().encode(
-    x=alt.X('sexo:N', title='Sexo'),
-    y=alt.Y('salário:Q', title='Média Salarial', axis=alt.Axis(format='$.2f')),
-    color=alt.Color('sexo:N', scale=color_scale)
-).properties(
-    width=600,
-    height=400,
-    title='Média Salarial por Sexo em Pernambuco'
-)
-
-# Exibir o gráfico
-st.altair_chart(chart, use_container_width=True)
-
+# gráficos na página principal
+st.write("<h2 style='text-align: center;'>Gráficos</h2>", unsafe_allow_html=True)
+st.plotly_chart(fig, use_container_width=True)  
+st.plotly_chart(stacked_bar_chart, use_container_width=True)  
+st.plotly_chart(grouped_bar_chart_movimentacao, use_container_width=True)
+st.plotly_chart(bar_chart_media_salarial, use_container_width=True)
