@@ -157,6 +157,59 @@ bar_chart_media_salarial_instrucao = px.bar(
     labels={'Nível Instrução': 'Nível de Instrução', 'Salário': 'Média Salarial (R$)'}
 )
 
+# atividade econômica e tipo de deficiência
+deficiencia_data = filtered_data.groupby(['Seção de Atividade Econômica', 'Tipo Deficiência']).size().reset_index(name='Quantidade')
+bar_chart_deficiencia = px.bar(
+    deficiencia_data,
+    x='Seção de Atividade Econômica',
+    y='Quantidade',
+    color='Tipo Deficiência',
+    barmode='group', 
+    title=f'Distribuição de Tipos de Deficiência por {selected_genero} em {selected_cidade} ({selected_ano})',
+    labels={'Seção de Atividade Econômica': 'Seção de Atividade Econômica', 'Quantidade': 'Quantidade', 'Tipo Deficiência': 'Tipo de Deficiência'}
+)
+# tipo de movimentação (admissão/demissão) e categoria de emprego
+movimentacao_category = filtered_data.groupby(['Tipo Movimentação', 'Seção de Atividade Econômica']).size().reset_index(name='Quantidade')
+stacked_bar_movimentacao_category = px.bar(
+    movimentacao_category,
+    x='Seção de Atividade Econômica',
+    y='Quantidade',
+    color='Tipo Movimentação',
+    barmode='group', 
+    title=f'Admissões e Demissões de {selected_genero} por Tipo de Movimentação e Categoria de Emprego em {selected_cidade} ({selected_ano})',
+    labels={'Seção de Atividade Econômica': 'Categoria de Emprego', 'Quantidade': 'Quantidade', 'Tipo Movimentação': 'Tipo de Movimentação'}
+)
+# idades em intervalos
+def age_group(age):
+    if age < 25:
+        return '<25'
+    elif age < 35:
+        return '25-34'
+    elif age < 45:
+        return '35-44'
+    elif age < 55:
+        return '45-54'
+    else:
+        return '55+'
+
+filtered_data['Faixa Etária'] = filtered_data['Idade'].apply(age_group)
+# dados por gênero, faixa etária e ano e calcular a taxa de desemprego
+unemployment_data = filtered_data.groupby(['Gênero', 'Faixa Etária', 'Ano Declaração'])['saldomovimentação'].apply(lambda x: (x == 'Desligamento').sum()).reset_index(name='Desempregados')
+total_people_data = filtered_data.groupby(['Gênero', 'Faixa Etária', 'Ano Declaração'])['saldomovimentação'].count().reset_index(name='Total')
+# desempregados e total de pessoas
+unemployment_rate_data = unemployment_data.merge(total_people_data, on=['Gênero', 'Faixa Etária', 'Ano Declaração'])
+# taxa de desemprego
+unemployment_rate_data['Taxa de Desemprego'] = (unemployment_rate_data['Desempregados'] / unemployment_rate_data['Total']) * 100
+bar_unemployment_rate = px.bar(
+    unemployment_rate_data,
+    x='Faixa Etária',
+    y='Taxa de Desemprego',
+    color='Gênero',
+    title=f'Taxa de Desemprego por Gênero e Faixa Etária em {selected_cidade}',
+    labels={'Faixa Etária': 'Faixa Etária', 'Taxa de Desemprego': 'Taxa de Desemprego (%)', 'Gênero': 'Gênero'},
+    facet_col='Ano Declaração'  # Facetar por ano
+)
+
 # em reais no formato correto
 bar_chart_media_salarial_instrucao.update_layout(yaxis_tickformat=',.2f')
 
@@ -167,3 +220,7 @@ st.plotly_chart(stacked_bar_chart, use_container_width=True)
 st.plotly_chart(grouped_bar_chart_movimentacao, use_container_width=True)
 st.plotly_chart(bar_chart_media_salarial_raca, use_container_width=True)
 st.plotly_chart(bar_chart_media_salarial_instrucao, use_container_width=True)
+st.plotly_chart(bar_chart_deficiencia, use_container_width=True)
+st.plotly_chart(stacked_bar_movimentacao_category, use_container_width=True)
+st.plotly_chart(bar_unemployment_rate, use_container_width=True)
+
