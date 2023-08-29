@@ -205,9 +205,9 @@ bar_unemployment_rate = px.bar(
     x='Faixa Etária',
     y='Taxa de Desemprego',
     color='Gênero',
-    title=f'Taxa de Desemprego por Gênero e Faixa Etária em {selected_cidade}',
+    title=f'Taxa de Desemprego por {selected_genero} e Faixa Etária em {selected_cidade}',
     labels={'Faixa Etária': 'Faixa Etária', 'Taxa de Desemprego': 'Taxa de Desemprego (%)', 'Gênero': 'Gênero'},
-    facet_col='Ano Declaração'  # Facetar por ano
+    facet_col='Ano Declaração' 
 )
 
 # em reais no formato correto
